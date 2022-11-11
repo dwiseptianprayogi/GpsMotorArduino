@@ -12,9 +12,12 @@ import android.os.Handler
 import android.os.Message
 import android.util.Log
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.fragment.app.Fragment
 import com.google.android.gms.tasks.Task
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.firebase.database.*
 import com.google.firebase.database.ktx.database
@@ -24,71 +27,42 @@ import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
-    private  lateinit var database: DatabaseReference
+    private var content : FrameLayout? = null
+
+    private fun addFragment(fragment: Fragment){
+        supportFragmentManager
+            .beginTransaction()
+            .setCustomAnimations(R.anim.design_bottom_sheet_slide_in, R.anim.design_bottom_sheet_slide_out)
+            .replace(R.id.content, fragment, fragment.javaClass.simpleName)
+            .commit()
+    }
+
+    private val mOnNavigationItemSelectedListener = BottomNavigationView.OnNavigationItemSelectedListener { item->
+        when(item.itemId){
+            R.id.home->{
+                val fragment = Homefragment.newInstance()
+                addFragment(fragment)
+                return@OnNavigationItemSelectedListener true
+            }
+            R.id.history->{
+                val fragment = HistoryFragment.newInstance()
+                addFragment(fragment)
+                return@OnNavigationItemSelectedListener true
+            }
+        }
+        false
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val tvLat: TextView = findViewById(R.id.tvLat)
-        val tvLng: TextView = findViewById(R.id.tvLng)
-        val tvLatValue: TextView = findViewById(R.id.tvLatValue)
-        val tvLngValue: TextView = findViewById(R.id.tvLngValue)
-        val tvUrlValue: TextView = findViewById(R.id.tvURLValue)
-        val btnImage:Button = findViewById(R.id.btnDialog)
+        val navigation :BottomNavigationView = findViewById(R.id.navigation)
+        navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener)
 
-
-        database = Firebase.database.reference
-        val lat = database.child("lat").get()
-        val lng =  database.child("lng").get()
-
-        database.child("lat").get().addOnSuccessListener {
-            tvLatValue.text = "${it.value}"
-            Log.i("firebase", "Got value ${it.value}")
-        }.addOnFailureListener{
-            Log.e("firebase", "Error getting data", it)
-        }
-        database.child("lng").get().addOnSuccessListener {
-            tvLngValue.text = "${it.value}"
-            Log.i("firebase", "Got value ${it.value}")
-        }.addOnFailureListener{
-            Log.e("firebase", "Error getting data", it)
-        }
-        database.child("url").get().addOnSuccessListener {
-            var url ="${it.value}"
-//            tvUrlValue.text = url
-            val btnURL: Button = findViewById(R.id.btnURL)
-            Log.i("firebase", "Got value ${it.value}")
-
-            btnURL.setOnClickListener {
-//                val openURL = Intent(android.content.Intent.ACTION_VIEW)
-//                openURL.data = Uri.parse(url)
-//                startActivity(openURL)
-                val gmmIntentUri = Uri.parse(url)
-                val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-                mapIntent.setPackage("com.google.android.apps.maps")
-                startActivity(mapIntent)
-
-                Toast.makeText(this@MainActivity, url, Toast.LENGTH_SHORT).show()
-            }
-        }.addOnFailureListener{
-            Log.e("firebase", "Error getting data", it)
-        }
-
-        btnImage.setOnClickListener {
-            var dialog = imageFragment()
-            dialog.show(supportFragmentManager, "customDialog")
-        }
-
+        val fragment = Homefragment.newInstance()
+        addFragment(fragment)
     }
-
-    class LocationAddress {
-
-    }
-
-}
-
-private fun Geocoder.getFromLocation(latitude: Task<DataSnapshot>, longitude: Task<DataSnapshot>, i: Int) {
 
 }
 

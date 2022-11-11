@@ -1,17 +1,21 @@
 package com.example.gpsarduino
 
+import android.Manifest
 import android.content.ContentValues.TAG
+import android.content.Context
 import android.content.Intent
-import android.location.Address
-import android.location.Geocoder
+import android.content.pm.PackageManager
+import android.location.*
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat.startActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.*
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
@@ -19,11 +23,12 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.firebase.database.*
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import me.ibrahimsn.lib.Speedometer
 import java.io.IOException
 import java.lang.Float.parseFloat
 import java.util.*
 
-class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
+class MapsActivity : AppCompatActivity(), OnMapReadyCallback, LocationListener {
 
     private lateinit var mMap: GoogleMap
     private lateinit var database: DatabaseReference
@@ -32,6 +37,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var tvLokasi:TextView
     private lateinit var mapView : MapView
+
+    private lateinit var locationManager: LocationManager
+    private val locationPermissionCode = 2
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,22 +53,42 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val bottomSheetFragment = BottomSheetFragment()
 
         BottomSheetBehavior.from(findViewById(R.id.sheet)).apply {
-            peekHeight=700
+            peekHeight=1000
             this.state = BottomSheetBehavior.STATE_COLLAPSED
         }
-
-//        firebaseDatabase = FirebaseDatabase.getInstance()
-//        database = firebaseDatabase.getReference("latLng")
 
         database1 = Firebase.database.reference
 
         val tvLolkasi: TextView = findViewById(R.id.tvLokasiValue)
 
-
         getData()
+        getLocation()
 
-        val lat = database.child("lat").get()
-        val lng =  database.child("lng").get()
+        //added because new access fine location policies, imported class..
+        //ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+
+
+        //check permission
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // Permission is not granted
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                1000
+            )
+        } else {
+
+            //start the program if permission is granted
+            doStuff()
+        }
+
+//        val speedometer = findViewById<Speedometer>(R.id.speedometer)
+//
+//        speedometer.setSpeed(80, 1000L)
 
         val btnImage:Button = findViewById(R.id.btnDialog)
         btnImage.setOnClickListener {
@@ -73,42 +101,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             var url ="${it.value}"
 //            findViewById<TextView>(R.id.tvSpeedometer).text = url
             Log.i("firebase", "Got value ${it.value}")
-//                val gmmIntentUri = Uri.parse(url)
-//                val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-//                mapIntent.setPackage("com.google.android.apps.maps")
-//                startActivity(mapIntent)
-//                Toast.makeText(this@MapsActivity, url, Toast.LENGTH_SHORT).show()
             btn.setOnClickListener {
-//                val url1 = url
-//                val i = Intent(Intent.ACTION_VIEW)
-//                i.data = Uri.parse(url1)
-//                startActivity(i)
                 val intent = Intent(Intent.ACTION_VIEW).setData(Uri.parse(url))
                 startActivity(intent)
             }
         }.addOnFailureListener{
             Log.e("firebase", "Error getting data", it)
         }
-//        bottomSheetFragment.show(supportFragmentManager, "hahahaha")
 
-
-//        database.child("latLng").get().addOnSuccessListener {
-//            Log.i("firebase", "Got value ${it.value}")
-//            var lokasi = "${it.value}"
-//
-//
-//
-//        }.addOnFailureListener{
-//            Log.e("firebase", "Error getting data", it)
-//        }
-//        database.child("url").get().addOnSuccessListener {
-//            var url ="${it.value}"
-//            Log.i("firebase", "Got value ${it.value}")
-//        }.addOnFailureListener{
-//            Log.e("firebase", "Error getting data", it)
-//        }
         firebaseDatabase = FirebaseDatabase.getInstance()
-        database = firebaseDatabase.getReference("speed")
+        database = firebaseDatabase.getReference("gps/speed")
         database .addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
                 val speedVal = dataSnapshot.value.toString()
@@ -117,15 +119,138 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                TODO("Not yet implemented")
+                Toast.makeText(this@MapsActivity, "value speed is null", Toast.LENGTH_SHORT).show()
             }
         })
+
+        firebaseDatabase.getReference("gps/state").addValueEventListener(
+            object:ValueEventListener{
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val value = snapshot.value.toString()
+                    if (value == "1"){
+                        getLocation()
+                    }else{
+                        Toast.makeText(this@MapsActivity, "value state gps no get LatLng", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {
+                    Toast.makeText(this@MapsActivity, "error get state gps", Toast.LENGTH_SHORT).show()
+                }
+
+            }
+        )
+
+
     }
+
+
+
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String?>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == 1000) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                doStuff()
+            } else {
+                finish()
+            }
+        }
+        if (requestCode == locationPermissionCode) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show()
+            }
+            else {
+                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
+    private fun doStuff() {
+        val lm = this.getSystemService(LOCATION_SERVICE) as LocationManager
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return
+        }
+        lm?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, this)
+        Toast.makeText(this, "Waiting for GPS connection!", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun getLocation() {
+        locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if ((ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), locationPermissionCode)
+        }
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5f, this)
+    }
+    override fun onLocationChanged(location: Location) {
+//        tvGpsLocation = findViewById(R.id.textView)
+//        tvGpsLocation.text = "Latitude: " + location.latitude + " , Longitude: " + location.longitude
+        Toast.makeText(this,"Latlong: "+location.latitude+","+location.longitude, Toast.LENGTH_LONG).show()
+        FirebaseDatabase.getInstance().reference.child("gps/latLng")
+            .setValue(location.latitude.toString()+","+location.longitude.toString())
+
+        FirebaseDatabase.getInstance().reference.child("gps/key").get().addOnSuccessListener {
+            val key = it.value.toString()
+            FirebaseDatabase.getInstance().reference.child("gps/lokasi").child(key.toString()).child("latLng")
+                .setValue(location.latitude.toString()+","+location.longitude.toString())
+        }
+
+//        Toast.makeText(this, "key: $key", Toast.LENGTH_LONG).show()
+
+//        FirebaseDatabase.getInstance().reference.child("gps/lokasi").push()
+//            .setValue(location.latitude.toString()+","+location.longitude.toString())
+
+        FirebaseDatabase.getInstance().reference.child("gps/state").setValue("0")
+        val txt = findViewById<View>(R.id.tvSpeedometerValue) as TextView
+        val speedometer = findViewById<Speedometer>(R.id.speedometer)
+
+        if (location == null) {
+            txt.text = "-.- km/h"
+            speedometer.setSpeed(0, 1000L)
+        } else {
+            val nCurrentSpeed = location.speed * 3.6f
+            txt.text = String.format("%.2f", nCurrentSpeed) + " km/h"
+            speedometer.setSpeed(nCurrentSpeed.toInt(), 1000L)
+        }
+
+    }
+
+//    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+//        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+//        if (requestCode == locationPermissionCode) {
+//            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//                Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show()
+//            }
+//            else {
+//                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show()
+//            }
+//        }
+//    }
+
 
     private fun getData() {
 
         firebaseDatabase = FirebaseDatabase.getInstance()
-        database = firebaseDatabase.getReference("latLng")
+        database = firebaseDatabase.getReference("gps/latLng")
         database .addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot){
                 val latitude = dataSnapshot.value.toString()
@@ -169,6 +294,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
             override fun onCancelled(error: DatabaseError) {
                 // Failed to read value
+                Toast.makeText(applicationContext, "erroe getting data latlng", Toast.LENGTH_SHORT).show()
                 Log.w(TAG, "Failed to read value.", error.toException())
             }
         })
@@ -189,7 +315,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mMap = googleMap
 
         firebaseDatabase = FirebaseDatabase.getInstance()
-        database = firebaseDatabase.getReference("latLng")
+        database = firebaseDatabase.getReference("gps/latLng")
         database .addValueEventListener(object: ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {
                 mMap.clear()

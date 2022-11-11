@@ -54,5 +54,8 @@ dependencies {
     implementation 'com.google.android.gms:play-services-maps:18.0.2'
     implementation 'com.karumi:dexter:6.2.2'
 
+    implementation 'com.github.ibrahimsn98:speedometer:1.0.1'
+
+
 
 }

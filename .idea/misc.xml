@@ -3,15 +3,21 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/drawable/ic_baseline_history_24.xml" value="0.1575" />
+        <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/drawable/ic_baseline_home_24.xml" value="0.1575" />
+        <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/drawable/ic_baseline_location_on_24.xml" value="0.1575" />
         <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/drawable/ic_baseline_map_24.xml" value="0.1575" />
         <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/drawable/ic_baseline_remove_24.xml" value="0.1575" />
         <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/drawable/ic_baseline_speed_24.xml" value="0.1575" />
         <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/drawable/rounded.xml" value="0.1575" />
-        <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/layout/activity_main.xml" value="0.18" />
-        <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/layout/activity_maps.xml" value="0.25" />
+        <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/layout/activity_main.xml" value="0.12" />
+        <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/layout/activity_maps.xml" value="0.18565400843881857" />
         <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/layout/bottomsheet_fragment.xml" value="0.19157608695652173" />
+        <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/layout/fragment_history.xml" value="0.19010416666666666" />
+        <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/layout/fragment_homefragment.xml" value="0.20416666666666666" />
         <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/layout/fragment_image.xml" value="0.20416666666666666" />
         <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/layout/fragment_maps.xml" value="0.12182971014492754" />
+        <entry key="..\:/Users/dwise/GPSArduino/app/src/main/res/menu/navigation.xml" value="0.20416666666666666" />
       </map>
     </option>
   </component>
